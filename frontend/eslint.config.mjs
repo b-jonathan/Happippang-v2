@@ -1,12 +1,17 @@
-import eslintPluginPrettier from "eslint-plugin-prettier";
+import { FlatCompat } from "@eslint/eslintrc";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
 import js from "@eslint/js";
-import tseslint from "typescript-eslint";
-import next from "eslint-plugin-next";
+import eslintPluginPrettier from "eslint-plugin-prettier";
 
-export default [
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const compat = new FlatCompat({ baseDirectory: __dirname });
+
+const config = [
   js.configs.recommended,
-  ...tseslint.configs.recommended,
-  next.configs.recommended,
+  ...compat.extends("next/core-web-vitals"),
   {
     plugins: {
       prettier: eslintPluginPrettier,
@@ -17,3 +22,5 @@ export default [
     },
   },
 ];
+
+export default config;
