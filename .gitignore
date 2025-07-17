@@ -316,3 +316,4 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignorep
+/backend/app/forecasts

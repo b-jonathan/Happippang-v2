@@ -2,4 +2,7 @@ fastapi>=0.111
 uvicorn[standard]>=0.30
 pydantic>=2.7
 anyio>=4
+sqlalchemy[asyncio]
+asyncpg
+python-dotenv
 # add your production libs below
