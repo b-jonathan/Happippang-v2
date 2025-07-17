@@ -14,55 +14,29 @@ async def health():
     return {"status": "OK"}
 
 
-@app.get("/sales/")
-async def get_sales():
-    def _blocking():
-        stmt = text("""
-            SELECT
-                sales_date,
-                store_name,
-                item_name,
-                sales_qty,
-                net_sales,
-                margin
-            FROM sales
-            WHERE sales_date BETWEEN :start AND :end
-        """)
-        start = "2025-07-01".encode("ascii").decode()   # guarantees only ASCII
-        end   = "2025-07-13".encode("ascii").decode()
+# ---------- blocking SQL ------------------------------------------------- #
 
-        params = {"start": start, "end": end}
-        sync_engine = get_sync_engine()
-        with sync_engine.begin() as conn:
-            return conn.execute(
-                stmt, params
-            ).mappings().all()
-
-    rows = await run_in_threadpool(_blocking)
-    return rows
-
-# ---------- blocking helpers ---------------------------------------- #
-
-def _fetch_sales(start: date, end: date) -> pd.DataFrame:
+def fetch_sales_rows(start: date, end: date):
+    """Pure blocking code — runs on any thread."""
     stmt = text("""
-        SELECT
-            sales_date,
-            store_name,
-            item_name,
-            sales_qty
+        SELECT sales_date,
+               store_name,
+               item_name,
+               sales_qty,
+               net_sales,
+               margin
         FROM sales
         WHERE sales_date BETWEEN :start AND :end
     """)
     with get_sync_engine().begin() as conn:
-        rows = conn.execute(stmt, {"start": start, "end": end}).mappings().all()
+        return conn.execute(stmt, {"start": start, "end": end}).mappings().all()
 
-    if not rows:
-        raise HTTPException(404, "no rows in that date window")
 
-    df = pd.DataFrame(rows)
-    df.rename(columns={"sales_date": "ds", "sales_qty": "y"}, inplace=True)
-    df["ds"] = pd.to_datetime(df["ds"])        # Prophet‑friendly dtype
-    return df
+# ---------- async helper (thread‑pool wrapper) --------------------------- #
+
+
+async def get_sales_rows(start: date, end: date):
+    return await run_in_threadpool(fetch_sales_rows, start, end)
 
 
 def _build_forecasts(df: pd.DataFrame, horizon: int) -> Dict[str, List[dict]]:
@@ -87,19 +61,31 @@ def _build_forecasts(df: pd.DataFrame, horizon: int) -> Dict[str, List[dict]]:
         out[key] = fc.to_dict(orient="records")
 
     return out
+# ---------- FastAPI routes ---------------------------------------------- #
+
+@app.get("/sales/")
+async def get_sales(
+    start: date = Query(date(2025, 7, 1)),
+    end:   date = Query(date(2025, 7, 13)),
+):
+    # just call the async wrapper
+    return await get_sales_rows(start, end)
 
 
-# ---------- routes --------------------------------------------------- #
-
-@app.get("/forecast/", tags=["forecast"])
-async def forecast(
+@app.get("/forecast/")
+async def get_forecast(
     start: date = Query(date(2025, 7, 1)),
     end:   date = Query(date(2025, 7, 13)),
     horizon: int = Query(30, ge=1, le=90),
 ):
-    """Return Prophet forecasts for every store‑item pair in the window."""
-    def _blocking():
-        df = _fetch_sales(start, end)
-        return _build_forecasts(df, horizon)
+    rows = await get_sales_rows(start, end)    # no duplication, no coroutine mishaps
 
-    return await run_in_threadpool(_blocking)
+    # build DataFrame once
+    df = (
+        pd.DataFrame([dict(r) for r in rows])
+        .rename(columns={"sales_date": "ds", "sales_qty": "y"})
+    )
+    df["ds"] = pd.to_datetime(df["ds"])
+
+    forecasts = _build_forecasts(df, horizon)
+    return forecasts
