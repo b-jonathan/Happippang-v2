@@ -41,6 +41,7 @@ forecasts = {}
 out_dir = Path("./forecasts")
 out_dir.mkdir(exist_ok=True)
 
+
 for (store, item), grp in df.groupby(["store_name", "item_name"]):
     if len(grp) < 2:                 # skip thin series
         continue

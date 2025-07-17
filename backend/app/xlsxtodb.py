@@ -127,7 +127,7 @@ async def bulk_upsert(df: pd.DataFrame, engine: AsyncEngine, truncate: bool) -> 
     await asyncio.to_thread(sync_engine.dispose)
     
 
-async def reflect_and_query():
+async def reflect():
      async with engine.begin() as conn:          # conn is AsyncConnection
         # 1) discover table names
         table_names = await conn.run_sync(
@@ -148,7 +148,7 @@ if __name__ == "__main__":
     async def main():
         try:
         # 1. Ensure table exists
-            await reflect_and_query()
+            await reflect()
             await ensure_table(engine)
 
         # 2. Read & clean workbook
