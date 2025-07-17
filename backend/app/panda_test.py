@@ -1,20 +1,12 @@
-from datetime import date
 import pandas as pd
 from prophet import Prophet
 import matplotlib.pyplot as plt
 from pathlib import Path
-import re
 
 from sqlalchemy import text
 
+from utils.util import slugify
 from db import get_sync_engine
-
-
-def slugify(text: str) -> str:
-    """Return a filename‑safe version of any string."""
-    text = re.sub(r'[\\/:"*?<>|]+', "_", text)   # replace path separators and illegal chars
-    text = re.sub(r"\s+", "_", text.strip())     # collapse whitespace
-    return text
 
 # create a new column with safe names
 
