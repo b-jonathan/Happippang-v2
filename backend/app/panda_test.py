@@ -1,8 +1,13 @@
+from datetime import date
 import pandas as pd
 from prophet import Prophet
 import matplotlib.pyplot as plt
 from pathlib import Path
 import re
+
+from sqlalchemy import text
+
+from db import get_sync_engine
 
 
 def slugify(text: str) -> str:
@@ -14,15 +19,29 @@ def slugify(text: str) -> str:
 # create a new column with safe names
 
 
-df = pd.read_excel("../../data/hero.xlsx")
-df.drop(columns=["STORE_CODE","SUBFAMILY_CODE","SUBFAMILY_NAME","ITEM_CODE","VENDOR_CODE","VENDOR_NAME","CONSIGNMENT_FLAG"], inplace=True)
-df["SALES_DATE"] = pd.to_datetime(df["SALES_DATE"], format="%Y-%m-%d")
-df["ITEM_NAME"] = df["ITEM_NAME"].str.removeprefix("'HAPPIPPANG")
+sync_engine = get_sync_engine()
 
-df["ITEM_NAME"] = df["ITEM_NAME"].apply(slugify)
-df["STORE_NAME"] = df["STORE_NAME"].str.removeprefix("'")
-df["STORE_NAME"] = df["STORE_NAME"].apply(slugify)
-df.rename(columns={"SALES_DATE": "ds", "SALES_QTY": "y"}, inplace=True)
+stmt = text("""
+    SELECT
+        sales_date,
+        store_name,
+        item_name,
+        sales_qty,
+        net_sales,
+        margin
+    FROM sales
+    WHERE sales_date BETWEEN :start AND :end
+""")
+start = "2025-07-01".encode("ascii").decode()   # guarantees only ASCII
+end   = "2025-07-13".encode("ascii").decode()
+
+params = {"start": start, "end": end}
+
+
+with sync_engine.begin() as conn:
+    df = pd.read_sql(stmt, conn, params=params)
+    
+print(df)
 
 models = {}
 forecasts = {}
@@ -30,7 +49,7 @@ forecasts = {}
 out_dir = Path("./forecasts")
 out_dir.mkdir(exist_ok=True)
 
-for (store, item), grp in df.groupby(["STORE_NAME", "ITEM_NAME"]):
+for (store, item), grp in df.groupby(["store_name", "item_name"]):
     if len(grp) < 2:                 # skip thin series
         continue
 
@@ -54,7 +73,7 @@ for (store, item), grp in df.groupby(["STORE_NAME", "ITEM_NAME"]):
     fig.savefig(store_dir / safe_file)
     plt.close(fig)
 
-print(f"Built {len(models)} item‑level forecasts.  Plots saved to {out_dir.resolve()}")
+print(f"Built {len(models)} item-level forecasts.  Plots saved to {out_dir.resolve()}")
 
 # summary = (
 #     df.groupby("ITEM_NAME", as_index=False)
