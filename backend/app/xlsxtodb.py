@@ -22,12 +22,27 @@ Notes
 from __future__ import annotations
 
 import pandas as pd
-from sqlalchemy import (BIGINT, DATE, FLOAT, NUMERIC, TEXT, VARCHAR, Column, Engine,
-                        MetaData, Table, UniqueConstraint, inspect, MetaData, select, create_engine as create_sync_engine )
+from sqlalchemy import (
+    BIGINT,
+    DATE,
+    FLOAT,
+    NUMERIC,
+    TEXT,
+    VARCHAR,
+    Column,
+    Engine,
+    MetaData,
+    Table,
+    UniqueConstraint,
+    inspect,
+    MetaData,
+    select,
+    create_engine as create_sync_engine,
+)
 from sqlalchemy.ext.asyncio import AsyncEngine
 import asyncio
 
-from db import get_sync_engine, get_async_engine
+from backend.app.utils.db import get_sync_engine, get_async_engine
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -76,6 +91,7 @@ def clean_dataframe(raw: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
+
 meta = MetaData()
 
 sales_table = Table(
@@ -97,6 +113,7 @@ sales_table = Table(
 ###############################################################################
 # Core I/O functions
 ###############################################################################
+
 
 async def ensure_table(engine: AsyncEngine) -> None:
     """Create fact_daily_sales if it doesn't exist."""
@@ -125,40 +142,40 @@ async def bulk_upsert(df: pd.DataFrame, engine: AsyncEngine, truncate: bool) -> 
     # run the blocking upload in a worker thread
     await asyncio.to_thread(_upload)
     await asyncio.to_thread(sync_engine.dispose)
-    
+
 
 async def reflect():
-     async with engine.begin() as conn:          # conn is AsyncConnection
+    async with engine.begin() as conn:  # conn is AsyncConnection
         # 1) discover table names
         table_names = await conn.run_sync(
             lambda sync_conn: inspect(sync_conn).get_table_names()
         )
         print("tables:", table_names)
-        
 
-       
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
 
-
 if __name__ == "__main__":
     engine = get_async_engine()
+
     async def main():
         try:
-        # 1. Ensure table exists
+            # 1. Ensure table exists
             await reflect()
             await ensure_table(engine)
 
-        # 2. Read & clean workbook
+            # 2. Read & clean workbook
             raw = pd.read_excel("../../data/hero.xlsx")
             df = clean_dataframe(raw)
 
-        # # 3. Upsert / append
+            # # 3. Upsert / append
             await bulk_upsert(df, engine, truncate=True)
 
             print(f"Loaded {len(df):,} rows into sales")
         finally:
             await engine.dispose()
+
     asyncio.run(main())

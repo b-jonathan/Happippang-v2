@@ -6,14 +6,15 @@ from pathlib import Path
 from sqlalchemy import text
 
 from utils.util import slugify
-from db import get_sync_engine
+from backend.app.utils.db import get_sync_engine
 
 # create a new column with safe names
 
 
 sync_engine = get_sync_engine()
 
-stmt = text("""
+stmt = text(
+    """
     SELECT
         sales_date,
         store_name,
@@ -23,16 +24,17 @@ stmt = text("""
         margin
     FROM sales
     WHERE sales_date BETWEEN :start AND :end
-""")
-start = "2025-07-01".encode("ascii").decode()   # guarantees only ASCII
-end   = "2025-07-13".encode("ascii").decode()
+"""
+)
+start = "2025-07-01".encode("ascii").decode()  # guarantees only ASCII
+end = "2025-07-13".encode("ascii").decode()
 
 params = {"start": start, "end": end}
 
 
 with sync_engine.begin() as conn:
     df = pd.read_sql(stmt, conn, params=params)
-    
+
 print(df)
 
 models = {}
@@ -43,7 +45,7 @@ out_dir.mkdir(exist_ok=True)
 
 
 for (store, item), grp in df.groupby(["store_name", "item_name"]):
-    if len(grp) < 2:                 # skip thin series
+    if len(grp) < 2:  # skip thin series
         continue
 
     ts = grp[["ds", "y"]].copy()
@@ -85,4 +87,3 @@ print(f"Built {len(models)} item-level forecasts.  Plots saved to {out_dir.resol
 
 # # sort if you want the best‑selling items first
 # summary = summary.sort_values("gross_sales_vat_inc", ascending=False)
-
