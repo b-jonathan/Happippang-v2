@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Dict, List
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, Query
+
 import pandas as pd
 from starlette.concurrency import run_in_threadpool
 from prophet import Prophet
@@ -51,6 +52,7 @@ def _build_forecasts(df: pd.DataFrame, horizon: int) -> Dict[str, List[dict]]:
 
         if len(ts) < 2 or ts["y"].nunique() < 2:
             # skip series Prophet cannot fit
+            print(store,item)
             continue
 
         m = Prophet().fit(ts)
