@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, update, delete
+from sqlalchemy import insert, select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 
 from app.models.inventory import Inventory
 from app.schemas.inventory import (
+    InventoryBulkCreate,
     InventoryCreate,
     InventoryUpdate,
     InventoryOut,
@@ -23,6 +24,43 @@ async def create_inventory(
     await db.commit()
     await db.refresh(row)
     return row
+
+
+@router.post(
+    "/bulk",
+    response_model=list[InventoryOut],
+    status_code=status.HTTP_201_CREATED,
+)
+async def bulk_create_inventory(
+    payload: InventoryBulkCreate,
+    db: AsyncSession = Depends(get_session),
+):
+    if not payload.items:
+        raise HTTPException(400, "items list cannot be empty")
+
+    # build the list of dicts for INSERT
+    rows = [
+        {
+            "store_id": payload.store_id,
+            "date": payload.date,
+            "item_id": line.item_id,
+            "db": line.db,  # `db` → `in_qty`
+            "pg": line.pg,  # `pg` → `out_qty`
+        }
+        for line in payload.items
+        # optionally skip lines where both are zero:
+        if line.db or line.pg
+    ]
+
+    if not rows:
+        raise HTTPException(400, "all rows were zero")
+
+    # one-shot INSERT ... RETURNING
+    stmt = insert(Inventory).returning(Inventory)
+    result = await db.execute(stmt, rows)
+    await db.commit()
+
+    return result.scalars().all()
 
 
 @router.get("/", response_model=list[InventoryOut])

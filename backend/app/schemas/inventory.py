@@ -1,14 +1,23 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from uuid import UUID
 from datetime import date
 
 
-class InventoryBase(BaseModel):
-    store_id: UUID
+class InventoryLine(BaseModel):
     item_id: UUID
+    db: int = Field(ge=0)
+    pg: int = Field(ge=0)
+
+
+class InventoryBulkCreate(BaseModel):
+    store_id: UUID
     date: date
-    db: int = 0
-    pg: int = 0
+    items: list[InventoryLine]
+
+
+class InventoryBase(InventoryLine):
+    store_id: UUID
+    date: date
 
 
 class InventoryCreate(InventoryBase):
