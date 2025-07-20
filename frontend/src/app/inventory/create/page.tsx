@@ -113,6 +113,7 @@ export default function CreateInventory() {
 
   // ————— UI ————— //
   if (loading) return <p className="p-4">Loading…</p>;
+
   if (error) return <p className="p-4 text-red-600">Error: {error}</p>;
 
   return (

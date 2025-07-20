@@ -1,3 +1,10 @@
+exclude: |
+  (^backend/venv/)           # your Python venv
+  |(^backend/alembic/)       # Alembic migrations
+  |(^frontend/node_modules/) # if you ever run hooks there
+  |(^\.git/)                 # git internals
+  |(^frontend/\.next/)       # Next.js build files
+
 repos:
   - repo: https://github.com/psf/black
     rev: 23.3.0
@@ -11,3 +18,4 @@ repos:
     rev: 6.1.0
     hooks:
       - id: flake8
+        exclude: ^backend/alembic/

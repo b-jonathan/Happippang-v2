@@ -1,0 +1,7 @@
+# ignore Next.js build artifacts, deps, etc.
+.next/
+out/
+node_modules/
+public/
+# ignore any turbopack‐injected files
+**/*__turbopack_*.*
