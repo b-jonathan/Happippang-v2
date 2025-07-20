@@ -35,5 +35,5 @@ class Inventory(Base, TimestampMixin):
         index=True,
     )
 
-    qty_in = Column(Integer, nullable=False)
-    qty_out = Column(Integer, nullable=False)
+    db = Column(Integer, nullable=False)
+    pg = Column(Integer, nullable=False)

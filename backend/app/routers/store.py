@@ -25,7 +25,7 @@ async def list_stores(db: AsyncSession = Depends(get_session)):
 
 
 @router.get("/{store_id}", response_model=StoreOut)
-async def get_store(store_id: int, db: AsyncSession = Depends(get_session)):
+async def get_store(store_id: str, db: AsyncSession = Depends(get_session)):
     row = await db.get(Store, store_id)
     if not row:
         raise HTTPException(404, "Store not found")
@@ -34,12 +34,12 @@ async def get_store(store_id: int, db: AsyncSession = Depends(get_session)):
 
 @router.put("/{store_id}", response_model=StoreOut)
 async def update_store(
-    store_id: int, data: StoreUpdate, db: AsyncSession = Depends(get_session)
+    store_id: str, data: StoreUpdate, db: AsyncSession = Depends(get_session)
 ):
     stmt = (
         update(Store)
         .where(Store.id == store_id)
-        .values(**data.model_dump())
+        .values(**data.model_dump(exclude_none=True))
         .returning(Store)
     )
     res = await db.execute(stmt)
@@ -50,9 +50,12 @@ async def update_store(
     return row
 
 
-@router.delete("/{store_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_store(store_id: int, db: AsyncSession = Depends(get_session)):
-    res = await db.execute(delete(Store).where(Store.id == store_id))
-    if res.rowcount == 0:
-        raise HTTPException(404, "Store not found")
+@router.delete("/{store_id}", response_model=StoreOut)
+async def delete_store(store_id: str, db: AsyncSession = Depends(get_session)):
+    stmt = delete(Store).where(Store.id == store_id).returning(Store)
+    res = await db.execute(stmt)
+    row = res.scalar_one_or_none()
     await db.commit()
+    if not row:
+        raise HTTPException(404, "Store not found")
+    return row

@@ -1,14 +1,14 @@
-# app/schemas/inventory.py
-from datetime import date
 from pydantic import BaseModel
+from uuid import UUID
+from datetime import date
 
 
 class InventoryBase(BaseModel):
-    store_id: int
-    item_id: int
+    store_id: UUID
+    item_id: UUID
     date: date
-    in_qty: int = 0
-    out_qty: int = 0
+    db: int = 0
+    pg: int = 0
 
 
 class InventoryCreate(InventoryBase):
@@ -16,12 +16,12 @@ class InventoryCreate(InventoryBase):
 
 
 class InventoryUpdate(BaseModel):
-    in_qty: int | None = None
-    out_qty: int | None = None
+    db: int | None = None
+    pg: int | None = None
 
 
 class InventoryOut(InventoryBase):
-    id: int
+    id: UUID
 
     class Config:
         from_attributes = True

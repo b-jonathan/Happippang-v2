@@ -1,11 +1,11 @@
-# app/schemas/item.py
 from pydantic import BaseModel
+from uuid import UUID
 
 
 class ItemBase(BaseModel):
     name: str
     category: str
-    cost: int  # cents
+    cost: int
 
 
 class ItemCreate(ItemBase):
@@ -19,7 +19,7 @@ class ItemUpdate(BaseModel):
 
 
 class ItemOut(ItemBase):
-    id: int
+    id: UUID
 
     class Config:
         from_attributes = True
