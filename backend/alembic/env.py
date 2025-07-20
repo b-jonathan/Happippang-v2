@@ -21,6 +21,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 # access to the values within the .ini file in use.
 config = context.config
 
+database_url = os.getenv("DATABASE_URL")
+if database_url is None:
+    raise RuntimeError("DATABASE_URL env var not set")
+sync_url = database_url.replace("+asyncpg", "")
+config.set_main_option("sqlalchemy.url", sync_url)
+
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:

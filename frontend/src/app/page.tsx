@@ -1,6 +1,8 @@
 "use client";
 
 import { api } from "@/lib/api";
+import { Item } from "@/types/item";
+import { Store } from "@/types/store";
 import React, { useEffect, useState, FormEvent } from "react";
 
 /**
@@ -14,18 +16,6 @@ import React, { useEffect, useState, FormEvent } from "react";
  */
 
 // ----------------------- Types ------------------------------------ //
-interface Store {
-  id: string; // UUID
-  name: string;
-  type: string;
-}
-
-interface Item {
-  id: string; // UUID
-  name: string;
-  category: string;
-  cost: number; // cents
-}
 
 interface RowState {
   db: number;
@@ -56,8 +46,8 @@ export default function ShopItemGridForm() {
       try {
         setLoading(true);
         const [storesRes, itemsRes] = await Promise.all([
-          api.get(`/stores/`),
-          api.get(`/items/`),
+          api.get<Store[]>(`/stores/`),
+          api.get<Item[]>(`/items/`),
         ]);
 
         if (cancelled) return; // 🔹 bail if component unmounted
@@ -81,7 +71,7 @@ export default function ShopItemGridForm() {
     load();
     return () => {
       cancelled = true;
-    }; // 🔹 cleanup
+    };
   }, []);
 
   // ————— Handlers ————— //
