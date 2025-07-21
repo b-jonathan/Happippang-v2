@@ -9,8 +9,7 @@ from app.models.user import User
 from app.schemas import LoginRequest, RefreshToken, Token, UserCreate, UserOut
 from app.utils.auth import (
     authenticate_user,
-    create_access_token,
-    create_refresh_token,
+    create_access_pair,
     get_current_user,
     hash_password,
     is_refresh_token_revoked,
@@ -49,8 +48,7 @@ async def login(user: LoginRequest, db: AsyncSession = Depends(get_session)):
     if not auth_user:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED)
 
-    access_token = create_access_token(user.username)
-    refresh_token = create_refresh_token(user.username)
+    access_token, refresh_token = create_access_pair(user.username)
     await store_refresh_token(db, auth_user.id, refresh_token)
 
     return {
@@ -75,8 +73,7 @@ async def refresh_token_route(
     except JWTError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED)
 
-    new_access = create_access_token(username)
-    new_refresh = create_refresh_token(username)
+    new_access, new_refresh = create_access_pair(username)
 
     user_res = await db.execute(select(User).where(User.username == username))
     user = user_res.scalar_one()
