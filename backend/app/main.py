@@ -1,6 +1,7 @@
-from fastapi import FastAPI, Query
-from .routers import store_router, item_router, inventory_router
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from .routers import inventory_router, item_router, store_router, user_router
 
 app = FastAPI(title="Happippang API")
 
@@ -22,3 +23,4 @@ async def health():
 app.include_router(store_router)
 app.include_router(item_router)
 app.include_router(inventory_router)
+app.include_router(user_router)
