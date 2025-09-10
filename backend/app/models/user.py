@@ -14,5 +14,6 @@ class User(Base, TimestampMixin):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     username = Column(String, unique=True, index=True, nullable=False)
+    role = Column(String, nullable=False, default="member")
     password = Column(String, nullable=False)
     refresh_tokens = relationship("Token", back_populates="user")

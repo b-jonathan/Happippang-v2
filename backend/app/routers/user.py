@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
 from app.schemas import LoginRequest, RefreshToken, Token, UserCreate, UserOut
-from app.utils.auth import (
+from app.services.auth import (
     authenticate_user,
     create_access_pair,
     get_current_user,

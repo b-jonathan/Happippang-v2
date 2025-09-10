@@ -1,23 +1,12 @@
 "use client";
 
 import { api } from "@/lib/api";
+import { logout } from "@/services/auth";
 import { Inventory, InventoryBulk } from "@/types/inventory";
 import { Item } from "@/types/item";
 import { Store } from "@/types/store";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState, FormEvent } from "react";
-
-/**
- * Dynamic version ↔ FastAPI
- * --------------------------------------------------------------
- * • GET /stores  → fills shop dropdown
- * • GET /items   → fills item rows
- * • POST /inventory (payload logged for now)
- * --------------------------------------------------------------
- * Environment: set NEXT_PUBLIC_API_URL=http://localhost:8000
- */
-
-// ----------------------- Types ------------------------------------ //
 
 interface RowState {
   db: number;
@@ -146,6 +135,13 @@ export default function CreateInventory() {
             onChange={e => setDate(e.target.value)}
           />
         </label>
+
+        <button
+          onClick={logout}
+          className="rounded bg-red-600 px-4 py-1.5 text-white hover:bg-red-700"
+        >
+          Logout
+        </button>
       </div>
 
       {/* Table */}

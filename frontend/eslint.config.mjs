@@ -10,6 +10,16 @@ const __dirname = dirname(__filename);
 const compat = new FlatCompat({ baseDirectory: __dirname });
 
 const config = [
+  {
+    // ⬇️ ignore build artifacts, deps, turbopack junk
+    ignores: [
+      ".next/",
+      "out/",
+      "node_modules/",
+      "public/",
+      "**/*__turbopack_*.*",
+    ],
+  },
   js.configs.recommended,
   ...compat.extends("next/core-web-vitals"),
   {
