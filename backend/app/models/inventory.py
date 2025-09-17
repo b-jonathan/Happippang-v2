@@ -9,6 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -49,15 +50,19 @@ class Inventory(Base, TimestampMixin):
     )
 
     # daily movements
-    db = Column(Integer, nullable=False, server_default=0)  # qty_in
-    pg = Column(Integer, nullable=False, server_default=0)  # qty_out
+    db = Column(Integer, nullable=False, server_default=text("0"))  # qty_in
+    pg = Column(Integer, nullable=False, server_default=text("0"))  # qty_out
 
     # derived (3-day shelf life FIFO)
-    waste = Column(Integer, nullable=False, server_default=0)  # expired at end of day
-    rem = Column(Integer, nullable=False, server_default=0)  # end-of-day live stock
+    waste = Column(
+        Integer, nullable=False, server_default=text("0")
+    )  # expired at end of day
+    rem = Column(
+        Integer, nullable=False, server_default=text("0")
+    )  # end-of-day live stock
     b0_end = Column(
-        Integer, nullable=False, server_default=0
+        Integer, nullable=False, server_default=text("0")
     )  # today's leftover (age 0)
     b1_end = Column(
-        Integer, nullable=False, server_default=0
+        Integer, nullable=False, server_default=text("0")
     )  # yesterday's leftover (age 1)

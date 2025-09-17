@@ -4,14 +4,14 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 
-import app.models  # this should import all models via __init__.py
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import backend.app.models as app  # this should import all models via __init__.py
 from alembic import context
 from backend.app.utils.db import Base  # wherever you defined Base
 
-_ = app.models
+_ = app
 
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -20,6 +20,7 @@ config = context.config
 database_url = os.getenv("DATABASE_URL")
 if database_url is None:
     raise RuntimeError("DATABASE_URL env var not set")
+
 sync_url = database_url.replace("+asyncpg", "")
 config.set_main_option("sqlalchemy.url", sync_url)
 
