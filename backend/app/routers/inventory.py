@@ -5,9 +5,10 @@ from typing import List, Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.db import get_session
-from backend.app.schemas.inventory import InventoryBulkCreate, InventoryOut
-from backend.app.services.inventory_service import bulk_upsert_inventory
+from app.schemas.inventory import InventoryBulkCreate, InventoryOut
+from app.utils.db import get_session
+
+# from app.services.inventory_service import bulk_upsert_inventory
 
 router = APIRouter(prefix="/inventories", tags=["inventories"])
 
@@ -25,7 +26,7 @@ async def bulk_create_inventories(
     if not payload.items:
         raise HTTPException(status_code=400, detail="items list cannot be empty")
 
-    rows = await bulk_upsert_inventory(session, payload, mode=mode)
-    if not rows:
-        raise HTTPException(status_code=400, detail="all rows were zero")
-    return rows
+    # rows = await bulk_upsert_inventory(session, payload, mode=mode)
+    # if not rows:
+    #     raise HTTPException(status_code=400, detail="all rows were zero")
+    # return rows

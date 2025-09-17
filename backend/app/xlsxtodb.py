@@ -6,43 +6,32 @@ and append it to a PostgreSQL fact table.
 
 Usage (POSIX / PowerShell)
 -------------------------
-$ python save_to_postgres.py --xlsx ../../data/hero.xlsx --start 2025-07-01 --end 2025-07-13
+$ python save_to_postgres.py --xlsx ../../data/hero.xlsx
+--start 2025-07-01 --end 2025-07-13
 
 Environment variables expected
 ------------------------------
-PGUSER, PGPASSWORD, PGHOST, PGDATABASE, PGPORT  (defaults: reader/secret/localhost/sales/5432)
+PGUSER, PGPASSWORD, PGHOST, PGDATABASE,
+PGPORT  (defaults: reader/secret/localhost/sales/5432)
 
 Notes
 -----
-• Will create table *fact_daily_sales* with reasonable dtypes if it does not exist.
+• Will create table *fact_daily_sales* with
+reasonable dtypes if it does not exist.
 • Uses pandas.to_sql with *method="multi"* for batched INSERTs.
-• Duplicate prevention is left to the SQL layer (unique constraint on (sales_date, store_name, item_name)).
+• Duplicate prevention is left to the SQL layer
+(unique constraint on (sales_date, store_name, item_name)).
 """
 
 from __future__ import annotations
 
-import pandas as pd
-from sqlalchemy import (
-    BIGINT,
-    DATE,
-    FLOAT,
-    NUMERIC,
-    TEXT,
-    VARCHAR,
-    Column,
-    Engine,
-    MetaData,
-    Table,
-    UniqueConstraint,
-    inspect,
-    MetaData,
-    select,
-    create_engine as create_sync_engine,
-)
-from sqlalchemy.ext.asyncio import AsyncEngine
 import asyncio
 
-from backend.app.utils.db import get_sync_engine, get_async_engine
+import pandas as pd
+from sqlalchemy import BIGINT, DATE, NUMERIC, VARCHAR, Column, MetaData, Table, inspect
+from sqlalchemy.ext.asyncio import AsyncEngine
+
+from app.utils.db import get_async_engine, get_sync_engine
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -122,7 +111,6 @@ async def ensure_table(engine: AsyncEngine) -> None:
 
 
 async def bulk_upsert(df: pd.DataFrame, engine: AsyncEngine, truncate: bool) -> None:
-
     # swap +asyncpg → +psycopg2 for a blocking engine
     sync_engine = get_sync_engine()
 

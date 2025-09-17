@@ -5,9 +5,9 @@ from jose import JWTError, jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.models.user import User
-from backend.app.schemas import LoginRequest, RefreshToken, Token, UserCreate, UserOut
-from backend.app.services.auth import (
+from app.models.user import User
+from app.schemas import LoginRequest, RefreshToken, Token, UserCreate, UserOut
+from app.services.auth import (
     authenticate_user,
     create_access_pair,
     get_current_user,
@@ -16,7 +16,7 @@ from backend.app.services.auth import (
     revoke_refresh_token,
     store_refresh_token,
 )
-from backend.app.utils.db import get_session
+from app.utils.db import get_session
 
 ALGORITHM = os.getenv("ALGORITHM")
 REFRESH_KEY = os.getenv("REFRESH_KEY")

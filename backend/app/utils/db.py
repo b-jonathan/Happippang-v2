@@ -50,7 +50,7 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
     Yields a fresh AsyncSession and guarantees close/rollback/commit
     exactly once per request.  Import this in your routers like:
 
-        from backend.app.utils.db import get_session
+        from app.utils.db import get_session
     """
     async with async_session_maker() as session:
         try:

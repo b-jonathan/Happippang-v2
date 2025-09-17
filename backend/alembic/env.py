@@ -6,7 +6,7 @@ from sqlalchemy import engine_from_config, pool
 
 import app.models  # this should import all models via __init__.py
 from alembic import context
-from backend.app.utils.db import Base  # wherever you defined Base
+from app.utils.db import Base  # wherever you defined Base
 
 _ = app.models
 
