@@ -5,4 +5,8 @@ anyio>=4
 sqlalchemy[asyncio]
 asyncpg
 python-dotenv
+python-jose[cryptography]>=3.3
+passlib[bcrypt]>=1.7
+python-multipart>=0.0.9
+
 # add your production libs below
