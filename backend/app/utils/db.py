@@ -1,7 +1,7 @@
 import logging
 import os
 from functools import lru_cache
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator, Dict
 
 from dotenv import load_dotenv
 from sqlalchemy.engine import url as sa_url
@@ -57,16 +57,14 @@ def get_async_engine() -> AsyncEngine:
 
     u = u.set(query=q)
 
-    # One-time startup log
-    try:
-        logger.info(
-            "async engine configured "
-            f"src={src} driver={u.drivername} user={u.username} host={u.host} "
-            f"db={u.database} ssl={bool(connect_args.get('ssl'))} pool=NullPool"
-        )
-    except Exception:
-        # never block on logging
-        pass
+    # One-time cold-start banner to Vercel logs
+    banner = (
+        f"async engine configured src={src} driver={u.drivername} "
+        f"user={u.username} host={u.host} db={u.database} "
+        f"ssl={bool(connect_args.get('ssl'))} pool=NullPool"
+    )
+    logger.info(banner)
+    print(f"[DB] {banner}")  # always shows in Function Logs
 
     return create_async_engine(
         str(u),
@@ -78,6 +76,22 @@ def get_async_engine() -> AsyncEngine:
 
 
 async_engine = get_async_engine()
+
+
+def engine_public_info() -> Dict[str, Any]:
+    """
+    Safe snapshot of current engine URL pieces for debug endpoints.
+    No secrets are returned.
+    """
+    u = async_engine.url
+    return {
+        "driver": u.drivername,
+        "user": u.username,
+        "host": u.host,
+        "database": u.database,
+        "query": dict(u.query),
+    }
+
 
 # --------------------------------------------------------------------
 # 2)  Session factory
