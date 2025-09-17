@@ -2,17 +2,20 @@ import os
 from functools import lru_cache
 from typing import AsyncGenerator
 
+from dotenv import load_dotenv
 from sqlalchemy.engine import url as sa_url
-from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.pool import NullPool
 
+load_dotenv()
 
-def _resolve_url_and_connect_args() -> tuple[str, dict]:
+Base = declarative_base()
+
+
+@lru_cache
+def get_async_engine() -> AsyncEngine:
+    # Prefer ASYNC_DATABASE_URL, fall back to DATABASE_URL for compatibility
     raw = (
         (os.getenv("ASYNC_DATABASE_URL") or os.getenv("DATABASE_URL") or "")
         .strip()
@@ -24,56 +27,59 @@ def _resolve_url_and_connect_args() -> tuple[str, dict]:
 
     u = sa_url.make_url(raw)
 
-    # Force async driver
+    # Force async driver if a sync one was provided
     if u.drivername in ("postgres", "postgresql", "postgresql+psycopg2"):
         u = u.set(drivername="postgresql+asyncpg")
 
+    # Translate SSL flags for asyncpg and clean unsupported params
     q = dict(u.query)
     connect_args: dict = {}
 
-    # Translate sslmode → ssl for asyncpg and clean URL
     sslmode = q.pop("sslmode", None)
     if sslmode and str(sslmode).lower() in ("require", "verify-ca", "verify-full"):
         connect_args["ssl"] = True
 
-    # Support ?ssl=true too
-    ssl_q = q.pop("ssl", None)
-    if ssl_q and str(ssl_q).lower() in ("1", "true", "yes", "require"):
+    ssl_flag = q.pop("ssl", None)
+    if ssl_flag and str(ssl_flag).lower() in ("1", "true", "yes", "require"):
         connect_args["ssl"] = True
 
-    # Remove params asyncpg does not know
+    # Remove params asyncpg does not understand
     q.pop("channel_binding", None)
 
     u = u.set(query=q)
 
-    # Tiny startup log to prove what driver and ssl we use
-    try:
-        print(f"[DB] driver={u.drivername} ssl={'ssl' in connect_args}")
-    except Exception:
-        pass
-
-    return str(u), connect_args
-
-
-@lru_cache
-def get_async_engine() -> AsyncEngine:
-    url, connect_args = _resolve_url_and_connect_args()
     return create_async_engine(
-        url,
+        str(u),
         connect_args=connect_args,
         pool_pre_ping=True,
-        poolclass=NullPool,
+        poolclass=NullPool,  # serverless-friendly
+        future=True,
     )
 
 
-@lru_cache
-def get_sessionmaker() -> async_sessionmaker[AsyncSession]:
-    return async_sessionmaker(bind=get_async_engine(), expire_on_commit=False)
+async_engine = get_async_engine()
+
+# --------------------------------------------------------------------
+# 2)  Session factory
+# --------------------------------------------------------------------
+async_session_maker = sessionmaker(
+    async_engine,
+    expire_on_commit=False,
+    class_=AsyncSession,
+)
 
 
+# --------------------------------------------------------------------
+# 3)  FastAPI dependency
+# --------------------------------------------------------------------
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    Session = get_sessionmaker()
-    async with Session() as session:
+    """
+    Yields a fresh AsyncSession and guarantees close/rollback/commit
+    exactly once per request.  Import this in your routers like:
+
+        from backend.app.utils.db import get_session
+    """
+    async with async_session_maker() as session:
         try:
             yield session
             await session.commit()
