@@ -4,7 +4,7 @@ from sqlalchemy import Boolean, Column, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.utils.db import Base
+from backend.app.utils.db import Base
 
 from .mixin import TimestampMixin
 

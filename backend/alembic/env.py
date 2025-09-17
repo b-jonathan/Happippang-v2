@@ -1,16 +1,12 @@
-from logging.config import fileConfig
-
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
-from alembic import context
-
 import os
 import sys
+from logging.config import fileConfig
 
+from sqlalchemy import engine_from_config, pool
 
-from app.utils.db import Base  # wherever you defined Base
 import app.models  # this should import all models via __init__.py
+from alembic import context
+from backend.app.utils.db import Base  # wherever you defined Base
 
 _ = app.models
 

@@ -1,11 +1,12 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine, AsyncSession
-from functools import lru_cache
 import os
-from dotenv import load_dotenv
-from sqlalchemy.engine import Engine as SyncEngine
-from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from functools import lru_cache
 from typing import AsyncGenerator
+
+from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine as SyncEngine
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
 
@@ -15,7 +16,6 @@ Base = declarative_base()
 
 @lru_cache
 def get_async_engine() -> AsyncEngine:
-
     url = os.getenv("DATABASE_URL")
     return create_async_engine(url, pool_pre_ping=True, future=True)
 
@@ -50,7 +50,7 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
     Yields a fresh AsyncSession and guarantees close/rollback/commit
     exactly once per request.  Import this in your routers like:
 
-        from app.utils.db import get_session
+        from backend.app.utils.db import get_session
     """
     async with async_session_maker() as session:
         try:

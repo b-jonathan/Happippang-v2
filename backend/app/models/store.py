@@ -1,7 +1,10 @@
-from sqlalchemy import Column, DateTime, String, func
-from app.utils.db import Base
 import uuid
+
+from sqlalchemy import Column, String
 from sqlalchemy.dialects.postgresql import UUID
+
+from backend.app.utils.db import Base
+
 from .mixin import TimestampMixin
 
 

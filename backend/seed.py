@@ -1,9 +1,11 @@
 import asyncio
-from app.utils.db import get_async_engine
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
-from app.models import Item, Store
-from sqlalchemy import select, func
+
+from backend.app.models import Item, Store
+from backend.app.utils.db import get_async_engine
 
 
 async def seed():

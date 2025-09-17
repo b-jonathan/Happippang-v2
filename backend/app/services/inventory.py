@@ -9,8 +9,8 @@ from sqlalchemy import and_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.inventory import Inventory
-from app.schemas.inventory import InventoryBulkCreate, InventoryItemIn
+from backend.app.models.inventory import Inventory
+from backend.app.schemas.inventory import InventoryBulkCreate, InventoryItemIn
 
 Mode = Literal["propagate", "freeze"]
 
