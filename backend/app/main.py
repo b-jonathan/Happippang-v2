@@ -1,9 +1,14 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import inventory_router, item_router, store_router, user_router
 
-app = FastAPI(title="Happippang API")
+app = FastAPI(
+    title="Happippang API",
+    root_path=os.getenv("FASTAPI_ROOT_PATH", ""),  # <- key line
+)
 
 
 app.add_middleware(
