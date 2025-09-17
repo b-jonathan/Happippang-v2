@@ -6,12 +6,12 @@ from prophet import Prophet
 from sqlalchemy import text
 from utils.util import slugify
 
-from backend.apputils.db import get_sync_engine
+from backend.app.utils.db import get_async_engine
 
 # create a new column with safe names
 
 
-sync_engine = get_sync_engine()
+sync_engine = get_async_engine()
 
 stmt = text(
     """

@@ -31,7 +31,7 @@ import pandas as pd
 from sqlalchemy import BIGINT, DATE, NUMERIC, VARCHAR, Column, MetaData, Table, inspect
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from backend.apputils.db import get_async_engine, get_sync_engine
+from backend.app.utils.db import get_async_engine
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -112,7 +112,7 @@ async def ensure_table(engine: AsyncEngine) -> None:
 
 async def bulk_upsert(df: pd.DataFrame, engine: AsyncEngine, truncate: bool) -> None:
     # swap +asyncpg → +psycopg2 for a blocking engine
-    sync_engine = get_sync_engine()
+    sync_engine = get_async_engine()
 
     def _upload() -> None:
         with sync_engine.begin() as conn:
