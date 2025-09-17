@@ -7,6 +7,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from passlib.exc import UnknownHashError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +23,7 @@ if not logger.handlers:
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 logger.setLevel(LOG_LEVEL)
+# logger.propagate = False  # uncomment if logs are duplicated
 
 
 def _mask_token(tok: Optional[str]) -> str:
@@ -38,22 +40,44 @@ ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
+logger.info(
+    "auth config",
+    extra={
+        "has_secret": bool(SECRET_KEY),
+        "has_refresh": bool(REFRESH_KEY),
+        "alg": ALGORITHM,
+    },
+)
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
 
 
 def hash_password(password: str) -> str:
-    # never log raw password
     logger.debug("hash_password called")
     return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     logger.debug("verify_password called")
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        ok = pwd_context.verify(plain_password, hashed_password)
+        logger.debug("verify_password result", extra={"ok": ok})
+        return ok
+    except UnknownHashError:
+        logger.warning("verify_password unknown hash format")
+        return False
+    except Exception:
+        logger.exception("verify_password exception")
+        return False
 
 
-def create_access_token(username: str):
+def create_access_token(username: str) -> str:
+    if not SECRET_KEY:
+        logger.error("missing SECRET_KEY")
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR, "Server misconfigured"
+        )
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = {"sub": username, "exp": expire}
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
@@ -69,7 +93,12 @@ def create_access_token(username: str):
     return token
 
 
-def create_refresh_token(username: str):
+def create_refresh_token(username: str) -> str:
+    if not REFRESH_KEY:
+        logger.error("missing REFRESH_KEY")
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR, "Server misconfigured"
+        )
     expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     payload = {"sub": username, "exp": expire}
     token = jwt.encode(payload, REFRESH_KEY, algorithm=ALGORITHM)
@@ -85,11 +114,11 @@ def create_refresh_token(username: str):
     return token
 
 
-def create_access_pair(username: str):
+def create_access_pair(username: str) -> tuple[str, str]:
     logger.info("creating token pair", extra={"username": username})
     access_token = create_access_token(username)
     refresh_token = create_refresh_token(username)
-    return (access_token, refresh_token)
+    return access_token, refresh_token
 
 
 def refresh_access_pair(refresh_token: str) -> dict:
@@ -101,14 +130,13 @@ def refresh_access_pair(refresh_token: str) -> dict:
         username = payload.get("sub")
         if username is None:
             logger.warning("refresh token missing sub")
-            raise HTTPException(
-                status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
-            )
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid refresh token")
     except JWTError as e:
         logger.warning("refresh token decode failed", extra={"error": repr(e)})
-        raise HTTPException(
-            status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
-        )
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid refresh token")
+    except Exception:
+        logger.exception("unexpected error decoding refresh token")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid refresh token")
 
     new_access, new_refresh = create_access_pair(username)
     logger.info(
@@ -126,7 +154,7 @@ def refresh_access_pair(refresh_token: str) -> dict:
     }
 
 
-async def store_refresh_token(db: AsyncSession, user_id: str, token: str):
+async def store_refresh_token(db: AsyncSession, user_id: str, token: str) -> None:
     logger.info(
         "store_refresh_token",
         extra={"user_id": str(user_id), "rt_preview": _mask_token(token)},
@@ -136,7 +164,7 @@ async def store_refresh_token(db: AsyncSession, user_id: str, token: str):
     await db.commit()
 
 
-async def revoke_refresh_token(db: AsyncSession, token: str):
+async def revoke_refresh_token(db: AsyncSession, token: str) -> None:
     logger.info("revoke_refresh_token", extra={"rt_preview": _mask_token(token)})
     res = await db.execute(select(Token).where(Token.token == token))
     row = res.scalar_one_or_none()
@@ -162,23 +190,22 @@ async def authenticate_user(db: AsyncSession, username: str, password: str):
     try:
         result = await db.execute(select(User).where(User.username == username))
         user = result.scalar_one_or_none()
+        logger.debug("user lookup", extra={"found": bool(user)})
         if not user:
             logger.warning("user not found", extra={"username": username})
             return None
-        ok = verify_password(password, user.password)
-        if not ok:
+
+        if not verify_password(password, user.password):
             logger.warning("password verify failed", extra={"username": username})
             return None
+
         logger.info(
             "authenticate_user success",
             extra={"username": username, "user_id": str(user.id)},
         )
         return user
-    except Exception as e:
-        logger.error(
-            "authenticate_user exception",
-            extra={"username": username, "error": repr(e)},
-        )
+    except Exception:
+        logger.exception("authenticate_user exception")
         raise
 
 
@@ -197,12 +224,21 @@ async def get_current_user(
     except JWTError as e:
         logger.warning("token decode failed", extra={"error": repr(e)})
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid token")
+    except Exception:
+        logger.exception("unexpected error decoding token")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid token")
 
-    result = await db.execute(select(User).where(User.username == username))
-    user = result.scalar_one_or_none()
+    try:
+        result = await db.execute(select(User).where(User.username == username))
+        user = result.scalar_one_or_none()
+    except Exception:
+        logger.exception("DB error fetching user for token")
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "DB error")
+
     if not user:
         logger.warning("user not found for token", extra={"username": username})
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User not found")
+
     logger.debug(
         "get_current_user success",
         extra={"username": username, "user_id": str(user.id)},
