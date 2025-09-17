@@ -67,7 +67,7 @@ def get_async_engine() -> AsyncEngine:
     print(f"[DB] {banner}")  # always shows in Function Logs
 
     return create_async_engine(
-        str(u),
+        u,
         connect_args=connect_args,
         pool_pre_ping=True,
         poolclass=NullPool,  # serverless-friendly
