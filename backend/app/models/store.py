@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import Column, String
 from sqlalchemy.dialects.postgresql import UUID
 
-from backend.apputils.db import Base
+from backend.app.utils.db import Base
 
 from .mixin import TimestampMixin
 

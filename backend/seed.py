@@ -4,8 +4,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
 
-from backend.appmodels import Item, Store
-from backend.apputils.db import get_async_engine
+from backend.app.models import Item, Store
+from backend.app.utils.db import get_async_engine
 
 
 async def seed():

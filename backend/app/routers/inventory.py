@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.schemas.inventory import InventoryBulkCreate, InventoryOut
 from backend.app.utils.db import get_session
 
-# from backend.appservices.inventory_service import bulk_upsert_inventory
+# from backend.app.services.inventory_service import bulk_upsert_inventory
 
 router = APIRouter(prefix="/inventories", tags=["inventories"])
 

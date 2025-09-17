@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.appmodels.store import Store
-from backend.appschemas.store import StoreCreate, StoreOut, StoreUpdate
-from backend.apputils.db import get_session
+from backend.app.models.store import Store
+from backend.app.schemas.store import StoreCreate, StoreOut, StoreUpdate
+from backend.app.utils.db import get_session
 
 router = APIRouter(prefix="/stores", tags=["stores"])
 
