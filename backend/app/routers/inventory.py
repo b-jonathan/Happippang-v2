@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.schemas.inventory import InventoryBulkCreate, InventoryOut
-from backend.apputils.db import get_session
+from backend.app.utils.db import get_session
 
 # from backend.appservices.inventory_service import bulk_upsert_inventory
 

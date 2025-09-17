@@ -1,5 +1,5 @@
 # app/schemas/__init__.py
-from .inventory import InventoryCreate, InventoryOut, InventoryUpdate
+from .inventory import InventoryBulkCreate, InventoryOut
 from .item import ItemCreate, ItemOut, ItemUpdate
 from .store import StoreCreate, StoreOut, StoreUpdate
 from .token import RefreshToken, Token
@@ -15,8 +15,7 @@ __all__ = [
     "ItemUpdate",
     "ItemOut",
     # Inventory
-    "InventoryCreate",
-    "InventoryUpdate",
+    "InventoryBulkCreate",
     "InventoryOut",
     # User
     "User",
