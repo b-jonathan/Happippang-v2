@@ -16,14 +16,9 @@ Base = declarative_base()
 @lru_cache
 def get_async_engine() -> AsyncEngine:
     # Prefer ASYNC_DATABASE_URL, fall back to DATABASE_URL for compatibility
-    raw = (
-        (os.getenv("ASYNC_DATABASE_URL") or os.getenv("DATABASE_URL") or "")
-        .strip()
-        .strip("'")
-        .strip('"')
-    )
+    raw = (os.getenv("DATABASE_URL") or "").strip().strip("'").strip('"')
     if not raw:
-        raise RuntimeError("Missing ASYNC_DATABASE_URL or DATABASE_URL")
+        raise RuntimeError("Missing or DATABASE_URL")
 
     u = sa_url.make_url(raw)
 
@@ -47,7 +42,7 @@ def get_async_engine() -> AsyncEngine:
     q.pop("channel_binding", None)
 
     u = u.set(query=q)
-
+    print(u)
     return create_async_engine(
         str(u),
         connect_args=connect_args,
