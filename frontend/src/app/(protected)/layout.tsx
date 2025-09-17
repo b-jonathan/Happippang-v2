@@ -20,11 +20,11 @@ export default function ProtectedLayout({
   }, []);
 
   // Redirect if not logged in
-  useEffect(() => {
-    if (hydrated && !loading && !user) {
-      router.replace("/login");
-    }
-  }, [hydrated, loading, user, router]);
+  // useEffect(() => {
+  //   if (hydrated && !loading && !user) {
+  //     router.replace("/login");
+  //   }
+  // }, [hydrated, loading, user, router]);
 
   if (!hydrated || loading || !user) return <div>Loading...</div>;
 
