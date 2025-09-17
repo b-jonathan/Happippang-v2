@@ -1,54 +1,60 @@
+# backend/alembic/env.py
 import os
 import sys
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
+from sqlalchemy.engine import url as sa_url
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# Make the repo root importable so "import backend..." always works
+# env.py lives in backend/alembic, so go two levels up
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-import backend.app.models as app  # this should import all models via __init__.py
+import backend.app.models as app  # ensure models are imported
 from alembic import context
-from backend.app.utils.db import Base  # wherever you defined Base
+from backend.app.utils.db import Base  # your declarative Base
 
-_ = app
+_ = app  # silence linter
 
-
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+# Alembic Config
 config = context.config
 
-database_url = os.getenv("DATABASE_URL")
-if database_url is None:
+# Read and normalize the URL for sync migrations
+raw = (os.getenv("DATABASE_URL") or "").strip().strip('"').strip("'")
+if not raw:
     raise RuntimeError("DATABASE_URL env var not set")
 
-sync_url = database_url.replace("+asyncpg", "")
-config.set_main_option("sqlalchemy.url", sync_url)
+u = sa_url.make_url(raw)
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
+# Force a sync driver for Alembic runs
+if u.drivername in (
+    "postgres",
+    "postgresql",
+    "postgresql+asyncpg",
+    "postgresql+psycopg2",
+):
+    u = u.set(drivername="postgresql+psycopg")
+
+# Translate async style ssl flags to libpq style
+q = dict(u.query)
+if "ssl" in q:
+    ssl_val = str(q.pop("ssl")).lower()
+    if ssl_val in ("1", "true", "yes", "require"):
+        q["sslmode"] = "require"
+# channel_binding is not used for migrations
+q.pop("channel_binding", None)
+u = u.set(query=q)
+
+config.set_main_option("sqlalchemy.url", str(u))
+
+# Logging
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
-
 
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode.
-
-    This configures the context with just a URL
-    and not an Engine, though an Engine is acceptable
-    here as well.  By skipping the Engine creation
-    we don't even need a DBAPI to be available.
-
-    Calls to context.execute() here emit the given string to the
-    script output.
-
-    """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
@@ -56,27 +62,18 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
-
     with context.begin_transaction():
         context.run_migrations()
 
 
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode.
-
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
-
-    """
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
-
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
-
         with context.begin_transaction():
             context.run_migrations()
 
