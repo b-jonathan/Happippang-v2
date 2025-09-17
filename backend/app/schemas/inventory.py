@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date as date_type
 from typing import List, Literal
 from uuid import UUID
 
@@ -15,7 +15,7 @@ class InventoryItemIn(BaseModel):
 
 class InventoryBulkCreate(BaseModel):
     store_id: UUID
-    date: datetime.date
+    date: date_type
     items: List[InventoryItemIn]
     # Optional: request-time behavior; can also be a query param
     mode: Literal["propagate", "freeze"] = "propagate"
@@ -25,7 +25,7 @@ class InventoryOut(BaseModel):
     id: UUID
     store_id: UUID
     item_id: UUID
-    date: datetime.date
+    date: date_type
     db: int
     pg: int
     waste: int
