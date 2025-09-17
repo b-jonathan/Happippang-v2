@@ -1,3 +1,4 @@
+import logging
 import os
 from functools import lru_cache
 from typing import AsyncGenerator
@@ -10,14 +11,27 @@ from sqlalchemy.pool import NullPool
 
 load_dotenv()
 
+# ---------------------- Logging ----------------------
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+logger = logging.getLogger("db")
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+logger.setLevel(LOG_LEVEL)
+# ----------------------------------------------------
+
 Base = declarative_base()
 
 
 @lru_cache
 def get_async_engine() -> AsyncEngine:
-    # Prefer ASYNC_DATABASE_URL, fall back to DATABASE_URL for compatibility
-    raw = (os.getenv("DATABASE_URL") or "").strip().strip("'").strip('"')
+    # Source env remains DATABASE_URL to avoid changing behavior
+    src = "DATABASE_URL"
+    raw = (os.getenv(src) or "").strip().strip("'").strip('"')
     if not raw:
+        logger.error("missing DATABASE_URL")
         raise RuntimeError("Missing or DATABASE_URL")
 
     u = sa_url.make_url(raw)
@@ -42,7 +56,18 @@ def get_async_engine() -> AsyncEngine:
     q.pop("channel_binding", None)
 
     u = u.set(query=q)
-    print(u)
+
+    # One-time startup log
+    try:
+        logger.info(
+            "async engine configured "
+            f"src={src} driver={u.drivername} user={u.username} host={u.host} "
+            f"db={u.database} ssl={bool(connect_args.get('ssl'))} pool=NullPool"
+        )
+    except Exception:
+        # never block on logging
+        pass
+
     return create_async_engine(
         str(u),
         connect_args=connect_args,
@@ -74,10 +99,15 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 
         from backend.app.utils.db import get_session
     """
+    logger.debug("session open")
     async with async_session_maker() as session:
         try:
             yield session
             await session.commit()
+            logger.debug("session commit")
         except Exception:
+            logger.exception("session rollback due to error")
             await session.rollback()
             raise
+        finally:
+            logger.debug("session closed")
