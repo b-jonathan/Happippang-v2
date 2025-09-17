@@ -5,10 +5,10 @@ from typing import List, Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.utils.db import get_session
 from backend.app.schemas.inventory import InventoryBulkCreate, InventoryOut
+from backend.apputils.db import get_session
 
-# from app.services.inventory_service import bulk_upsert_inventory
+# from backend.appservices.inventory_service import bulk_upsert_inventory
 
 router = APIRouter(prefix="/inventories", tags=["inventories"])
 

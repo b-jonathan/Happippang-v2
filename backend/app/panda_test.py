@@ -6,7 +6,7 @@ from prophet import Prophet
 from sqlalchemy import text
 from utils.util import slugify
 
-from app.utils.db import get_sync_engine
+from backend.apputils.db import get_sync_engine
 
 # create a new column with safe names
 

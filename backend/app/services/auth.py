@@ -8,8 +8,8 @@ from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Token, User
-from app.utils.db import get_session
+from backend.appmodels import Token, User
+from backend.apputils.db import get_session
 
 SECRET_KEY = os.getenv("HASH_KEY")  # Change this!
 REFRESH_KEY = os.getenv("REFRESH_KEY")

@@ -31,7 +31,7 @@ import pandas as pd
 from sqlalchemy import BIGINT, DATE, NUMERIC, VARCHAR, Column, MetaData, Table, inspect
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from app.utils.db import get_async_engine, get_sync_engine
+from backend.apputils.db import get_async_engine, get_sync_engine
 
 # ---------------------------------------------------------------------------
 # Helpers
